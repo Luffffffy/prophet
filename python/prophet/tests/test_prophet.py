@@ -9,12 +9,13 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
-import sys
-from unittest import TestCase, skipUnless
+from unittest import TestCase
 
 import numpy as np
 import pandas as pd
+import pytest
 from prophet import Prophet
+from prophet.utilities import warm_start_params
 
 
 DATA = pd.read_csv(
@@ -65,7 +66,7 @@ class TestProphet(TestCase):
         res = self.rmse(future['yhat'], test['y'])
         self.assertAlmostEqual(res, 23.44, places=2, msg="backend: {}".format(forecaster.stan_backend))
 
-    @skipUnless("--test-slow" in sys.argv, "Skipped due to the lack of '--test-slow' argument")
+    @pytest.mark.slow
     def test_fit_sampling_predict(self):
         days = 30
         N = DATA.shape[0]
@@ -75,7 +76,8 @@ class TestProphet(TestCase):
 
         forecaster = Prophet(mcmc_samples=500)
 
-        forecaster.fit(train, seed=1237861298, chains=4)
+        # chains adjusted from 4 to 7 to satisfy test for cmdstanpy
+        forecaster.fit(train, seed=1237861298, chains=7, show_progress=False)
         np.random.seed(876543987)
         future = forecaster.make_future_dataframe(days, include_history=False)
         future = forecaster.predict(future)
@@ -86,12 +88,14 @@ class TestProphet(TestCase):
     def test_fit_predict_no_seasons(self):
         N = DATA.shape[0]
         train = DATA.head(N // 2)
-        future = DATA.tail(N // 2)
+        periods = 30
 
         forecaster = Prophet(weekly_seasonality=False,
                              yearly_seasonality=False)
         forecaster.fit(train)
-        forecaster.predict(future)
+        future = forecaster.make_future_dataframe(periods=periods, include_history=False)
+        result = forecaster.predict(future)
+        self.assertTrue((future.ds == result.ds).all())
 
     def test_fit_predict_no_changepoints(self):
         N = DATA.shape[0]
@@ -102,14 +106,14 @@ class TestProphet(TestCase):
         forecaster.fit(train)
         forecaster.predict(future)
 
-    @skipUnless("--test-slow" in sys.argv, "Skipped due to the lack of '--test-slow' argument")
+    @pytest.mark.slow
     def test_fit_predict_no_changepoints_mcmc(self):
         N = DATA.shape[0]
         train = DATA.head(N // 2)
         future = DATA.tail(N // 2)
-        
+
         forecaster = Prophet(n_changepoints=0, mcmc_samples=100)
-        forecaster.fit(train)
+        forecaster.fit(train, show_progress=False)
         forecaster.predict(future)
 
     def test_fit_changepoint_not_in_history(self):
@@ -888,3 +892,13 @@ class TestProphet(TestCase):
              'holidays',
              },
         )
+
+    def test_fit_warm_start(self):
+        m = Prophet().fit(DATA.iloc[:500])
+        m2 = Prophet().fit(DATA.iloc[:510], init=warm_start_params(m))
+        self.assertEqual(len(m2.params['delta'][0]), 25)
+
+    def test_sampling_warm_start(self):
+        m = Prophet(mcmc_samples=100).fit(DATA.iloc[:500], show_progress=False)
+        m2 = Prophet(mcmc_samples=100).fit(DATA.iloc[:510], init=warm_start_params(m), show_progress=False)
+        self.assertEqual(m2.params['delta'].shape, (200, 25))
