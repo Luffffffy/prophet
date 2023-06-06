@@ -12,6 +12,12 @@
 
 [![Conda_Version](https://anaconda.org/conda-forge/prophet/badges/version.svg)](https://anaconda.org/conda-forge/prophet/)
 
+-----
+
+**2023 Update:** We discuss our plans for the future of Prophet in this blog post: [facebook/prophet in 2023 and beyond](https://medium.com/@cuongduong_35162/facebook-prophet-in-2023-and-beyond-c5086151c138)
+
+-----
+
 Prophet is a procedure for forecasting time series data based on an additive model where non-linear trends are fit with yearly, weekly, and daily seasonality, plus holiday effects. It works best with time series that have strong seasonal effects and several seasons of historical data. Prophet is robust to missing data and shifts in the trend, and typically handles outliers well.
 
 Prophet is [open source software](https://code.facebook.com/projects/) released by Facebook's [Core Data Science team](https://research.fb.com/category/data-science/). It is available for download on [CRAN](https://cran.r-project.org/package=prophet) and [PyPI](https://pypi.python.org/pypi/prophet/).
@@ -25,10 +31,12 @@ Prophet is [open source software](https://code.facebook.com/projects/) released 
 - Contributing: https://facebook.github.io/prophet/docs/contributing.html
 - Prophet R package: https://cran.r-project.org/package=prophet
 - Prophet Python package: https://pypi.python.org/pypi/prophet/
-- Release blogpost: https://research.fb.com/prophet-forecasting-at-scale/
+- Release blogpost: https://research.facebook.com/blog/2017/2/prophet-forecasting-at-scale/
 - Prophet paper: Sean J. Taylor, Benjamin Letham (2018) Forecasting at scale. The American Statistician 72(1):37-45 (https://peerj.com/preprints/3190.pdf).
 
-## Installation in R
+## Installation in R - CRAN
+
+⚠️ **The CRAN version of prophet is fairly outdated. To get the latest bug fixes and updated country holiday data, we suggest installing the [latest release](#installation-in-r---latest-release).**
 
 Prophet is a [CRAN package](https://cran.r-project.org/package=prophet) so you can use `install.packages`.
 
@@ -37,6 +45,13 @@ install.packages('prophet')
 ```
 
 After installation, you can [get started!](https://facebook.github.io/prophet/docs/quick_start.html#r-api)
+
+## Installation in R - Latest release
+
+```r
+install.packages('remotes')
+remotes::install_github('facebook/prophet@*release', subdir = 'R')
+```
 
 #### Experimental backend - cmdstanr
 
@@ -79,7 +94,11 @@ After installation, you can [get started!](https://facebook.github.io/prophet/do
 
 ### Anaconda
 
-Prophet can also be installed through conda-forge: `conda install -c conda-forge prophet`.
+Prophet can also be installed through conda-forge.
+
+```bash
+conda install -c conda-forge prophet
+```
 
 ## Installation in Python - Development version
 
@@ -106,6 +125,32 @@ Make sure compilers (gcc, g++, build-essential) and Python development tools (py
 Using `cmdstanpy` with Windows requires a Unix-compatible C compiler such as mingw-gcc. If cmdstanpy is installed first, one can be installed via the `cmdstanpy.install_cxx_toolchain` command.
 
 ## Changelog
+
+### Version 1.1.4 (2023.05.30)
+
+#### Python
+
+- We now rely solely on `holidays` package for country holidays.
+- Upgraded cmdstan version to 2.31.0, enabling Apple M1 support.
+- Fixed bug with Windows installation caused by long paths.
+
+#### R
+
+- Updated `holidays` data based on holidays version 0.25.
+
+### Version 1.1.2 (2023.01.20)
+
+#### Python
+
+- Sped up `.predict()` by up to 10x by removing intermediate DataFrame creations.
+- Sped up fourier series generation, leading to at least 1.5x speed improvement for `train()` and `predict()` pipelines.
+- Fixed bug in how warm start values were being read.
+- Wheels are now version-agnostic.
+
+#### R
+
+- Fixed a bug in `construct_holiday_dataframe()`
+- Updated `holidays` data based on holidays version 0.18.
 
 ### Version 1.1.1 (2022.09.08)
 
